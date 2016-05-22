@@ -1,0 +1,22 @@
+version: '2'
+services:
+  db:
+    image: 'mariadb:latest'
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=tv
+      - MYSQL_USER=torrentviewer
+      - MYSQL_PASSWORD=torrentviewer
+  web:
+    build: .
+    environment:
+      - TV_DB_DRIVER=mysql
+      - TV_DB_USER=torrentviewer
+      - TV_DB_PASSWORD=torrentviewer
+      - TV_DB_HOST=db
+      - TV_DB_PORT=3306
+      - TV_DB_BASE=tv
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
