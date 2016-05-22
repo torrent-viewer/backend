@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/gorilla/handlers"
 	"github.com/torrent-viewer/backend/database"
@@ -11,8 +13,22 @@ import (
 )
 
 func main() {
-	if err := database.Init("mysql", "torrentviewer:torrentviewer@tcp(127.0.0.1:3306)/tv?charset=utf8&parseTime=True&loc=Local"); err != nil {
-		log.Fatal(err)
+	dbDriver := os.Getenv("TV_DB_DRIVER")
+	dbUser := os.Getenv("TV_DB_USER")
+	dbPassword := os.Getenv("TV_DB_PASSWORD")
+	dbHost := os.Getenv("TV_DB_HOST")
+	dbPort := os.Getenv("TV_DB_PORT")
+	dbBase := os.Getenv("TV_DB_BASE")
+	err := database.Init(dbDriver, dbUser, dbPassword, dbHost, dbPort, dbBase)
+	if err != nil {
+		for {
+			log.Println("Could not connect to database\n", err, "\nRetrying in 1 second...")
+			time.Sleep(1000 * time.Millisecond)
+			err = database.Init(dbDriver, dbUser, dbPassword, dbHost, dbPort, dbBase)
+			if err == nil {
+				break
+			}
+		}
 	}
 	database.Conn.AutoMigrate(&show.Show{})
 	r := router.NewRouter()
