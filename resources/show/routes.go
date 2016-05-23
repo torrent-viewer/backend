@@ -23,7 +23,7 @@ func RegisterHandlers(r *router.Router) {
 	}).AddRoute(router.Route{
 		Path:    "/shows/{id:[0-9]+}",
 		Handler: ShowsUpdate,
-		Method:  "PUT",
+		Method:  "PATCH",
 		Name:    "shows.update",
 	}).AddRoute(router.Route{
 		Path:    "/shows/{id:[0-9]+}",
@@ -198,6 +198,31 @@ func ShowsUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var show Show
+	d := database.Conn.First(&show, id)
+	if d.RecordNotFound() != false {
+		err := d.Error
+		e := responses.Error{
+			ID:     "not-found",
+			Status: "404",
+			Title:  "Not Found",
+			Detail: err.Error(),
+		}
+		if err := responses.SendError(w, http.StatusNotFound, e); err != nil {
+			log.Fatal(err)
+		}
+		return
+	} else if err := d.Error; err != nil {
+		e := responses.Error{
+			ID:     "database-error",
+			Status: "500",
+			Title:  "Database Error",
+			Detail: err.Error(),
+		}
+		if err := responses.SendError(w, http.StatusInternalServerError, e); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 	if err := jsonapi.UnmarshalPayload(r.Body, &show); err != nil {
 		e := responses.Error{
 			ID:     "malformated-input",
@@ -236,18 +261,6 @@ func ShowsUpdate(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Println(e)
 		if err := responses.SendError(w, http.StatusBadRequest, e); err != nil {
-			log.Fatal(err)
-		}
-		return
-	}
-	if database.Conn.NewRecord(&show) == true {
-		e := responses.Error{
-			ID:     "not-found",
-			Status: "404",
-			Title:  "Not Found",
-		}
-		log.Println(e)
-		if err := responses.SendError(w, http.StatusNotFound, e); err != nil {
 			log.Fatal(err)
 		}
 		return
