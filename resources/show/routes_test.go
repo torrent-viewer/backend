@@ -167,11 +167,11 @@ func TestShowsUpdate(t *testing.T) {
 		return
 	}
 	input = buf.String()
-	response = testEndpoint(t, "PUT", fmt.Sprintf("%s/%d", baseURL, show.ID+1), &input)
+	response = testEndpoint(t, "PATCH", fmt.Sprintf("%s/%d", baseURL, show.ID+1), &input)
 	if response.StatusCode != http.StatusBadRequest {
 		t.Errorf("Expected HTTP %d, got HTTP %d", http.StatusBadRequest, response.StatusCode)
 	}
-	response = testEndpoint(t, "PUT", fmt.Sprintf("%s/%d", baseURL, show.ID), &input)
+	response = testEndpoint(t, "PATCH", fmt.Sprintf("%s/%d", baseURL, show.ID), &input)
 	if response.StatusCode != http.StatusNoContent {
 		t.Errorf("Expected HTTP %d, got HTTP %d", http.StatusCreated, response.StatusCode)
 	}
@@ -186,7 +186,7 @@ func TestShowsUpdate(t *testing.T) {
 		return
 	}
 	input = buf.String()
-	response = testEndpoint(t, "PUT", fmt.Sprintf("%s/%d", baseURL, show.ID), &input)
+	response = testEndpoint(t, "PATCH", fmt.Sprintf("%s/%d", baseURL, show.ID), &input)
 	if response.StatusCode != http.StatusNotFound {
 		t.Errorf("Expected HTTP %d, got HTTP %d", http.StatusNotFound, response.StatusCode)
 	}

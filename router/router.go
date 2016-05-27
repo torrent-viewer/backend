@@ -1,6 +1,7 @@
 package router
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -38,6 +39,7 @@ func (router *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for _, mw := range router.middlewares {
 		handler = mw(handler)
 	}
+	w.Header().Set("Content-Type", "application/vnd.api+json; charset=UTF-8")
 	handler.ServeHTTP(w, r)
 }
 
@@ -56,6 +58,51 @@ func (router *Router) AddRoute(route Route) *Router {
 func (router *Router) AddRoutes(routes Routes) *Router {
 	for _, route := range routes {
 		router.AddRoute(route)
+	}
+	return router
+}
+
+// AddResource adds a resource to the router
+func (router *Router) AddResource(prefix string, resource interface{}) *Router {
+	if t, ok := resource.(Listable); ok {
+		router.AddRoute(Route{
+			Path:    fmt.Sprintf("/%s", prefix),
+			Handler: t.RouteList,
+			Method:  "GET",
+			Name:    fmt.Sprintf("%s.list", prefix),
+		})
+	}
+	if t, ok := resource.(Storable); ok {
+		router.AddRoute(Route{
+			Path:    fmt.Sprintf("/%s", prefix),
+			Handler: t.RouteStore,
+			Method:  "POST",
+			Name:    fmt.Sprintf("%s.store", prefix),
+		})
+	}
+	if t, ok := resource.(Viewable); ok {
+		router.AddRoute(Route{
+			Path:    fmt.Sprintf("/%s/{id:[0-9]+}", prefix),
+			Handler: t.RouteView,
+			Method:  "GET",
+			Name:    fmt.Sprintf("%s.view", prefix),
+		})
+	}
+	if t, ok := resource.(Updatable); ok {
+		router.AddRoute(Route{
+			Path:    fmt.Sprintf("/%s/{id:[0-9]+}", prefix),
+			Handler: t.RouteUpdate,
+			Method:  "PATCH",
+			Name:    fmt.Sprintf("%s.update", prefix),
+		})
+	}
+	if t, ok := resource.(Destroyable); ok {
+		router.AddRoute(Route{
+			Path:    fmt.Sprintf("/%s/{id:[0-9]+}", prefix),
+			Handler: t.RouteDestroy,
+			Method:  "DELETE",
+			Name:    fmt.Sprintf("%s.delete", prefix),
+		})
 	}
 	return router
 }

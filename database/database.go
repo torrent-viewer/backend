@@ -22,6 +22,6 @@ func Init(driver string, user string, password string, host string, port string,
 	if err != nil {
 		return err
 	}
-	Conn = db
+	Conn = db.LogMode(true)
 	return nil
 }

@@ -2,7 +2,6 @@ package show
 
 import (
 	"time"
-	// "github.com/torrent-viewer/backend/resources/episode"
 )
 
 type Show struct {
@@ -17,3 +16,9 @@ type Show struct {
 }
 
 type Shows []*Show
+
+type ShowResource struct {}
+
+func (Show) TableName() string {
+	return "shows";
+}

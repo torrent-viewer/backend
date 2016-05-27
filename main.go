@@ -19,6 +19,7 @@ func main() {
 	dbHost := os.Getenv("TV_DB_HOST")
 	dbPort := os.Getenv("TV_DB_PORT")
 	dbBase := os.Getenv("TV_DB_BASE")
+	log.Printf("Connection to %s database: %s:%s@%s:%s/%s", dbDriver, dbUser, dbPassword, dbHost, dbPort, dbBase)
 	err := database.Init(dbDriver, dbUser, dbPassword, dbHost, dbPort, dbBase)
 	if err != nil {
 		for {
@@ -38,6 +39,6 @@ func main() {
 		"application/vnd.api+json",
 	}
 	r.Use(router.ContentTypeMiddleware(acceptedTypes))
-	show.RegisterHandlers(r)
+	r.AddResource("shows", show.ShowResource{})
 	log.Fatal(http.ListenAndServe(":8080", r))
 }

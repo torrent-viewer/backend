@@ -13,40 +13,10 @@ import (
 	"github.com/torrent-viewer/backend/router"
 )
 
-// RegisterHandlers registers the handlers for the Shows endpoints
-func RegisterHandlers(r *router.Router) {
-	r.AddRoute(router.Route{
-		Path:    "/shows/{id:[0-9]+}",
-		Handler: ShowsShow,
-		Method:  "GET",
-		Name:    "shows.show",
-	}).AddRoute(router.Route{
-		Path:    "/shows/{id:[0-9]+}",
-		Handler: ShowsUpdate,
-		Method:  "PATCH",
-		Name:    "shows.update",
-	}).AddRoute(router.Route{
-		Path:    "/shows/{id:[0-9]+}",
-		Handler: ShowsDestroy,
-		Method:  "DELETE",
-		Name:    "shows.delete",
-	}).AddRoute(router.Route{
-		Path:    "/shows",
-		Handler: ShowsIndex,
-		Method:  "GET",
-		Name:    "shows.index",
-	}).AddRoute(router.Route{
-		Path:    "/shows",
-		Handler: ShowsStore,
-		Method:  "POST",
-		Name:    "shows.store",
-	})
-}
-
-// ShowsIndex is the HTTP endpoint used to list Shows instances
-func ShowsIndex(w http.ResponseWriter, r *http.Request) {
-	var shows Shows
-	if err := database.Conn.Find(&shows).Error; err != nil {
+// ShowsList is the HTTP endpoint used to create list Shows instances
+func (res ShowResource) RouteList(w http.ResponseWriter, r *http.Request) {
+	var entries Shows
+	if err := database.Conn.Find(&entries).Error; err != nil {
 		e := responses.Error{
 			ID:     "database-error",
 			Status: "500",
@@ -57,18 +27,15 @@ func ShowsIndex(w http.ResponseWriter, r *http.Request) {
 		if err := responses.SendError(w, http.StatusInternalServerError, e); err != nil {
 			log.Fatal(err)
 		}
+		return
 	}
-	serialized := make([]interface{}, len(shows))
-	for i, s := range shows {
-		serialized[i] = s
-	}
-	if err := responses.SendEntities(w, serialized); err != nil {
+	if err := responses.SendEntities(w, entries); err != nil {
 		log.Fatal(err)
 	}
 }
 
 // ShowsStore is the HTTP endpoint used to create new Shows instances
-func ShowsStore(w http.ResponseWriter, r *http.Request) {
+func (res ShowResource) RouteStore(w http.ResponseWriter, r *http.Request) {
 	var show Show
 	if err := jsonapi.UnmarshalPayload(r.Body, &show); err != nil {
 		e := responses.Error{
@@ -126,16 +93,14 @@ func ShowsStore(w http.ResponseWriter, r *http.Request) {
 			log.Fatal(err)
 		}
 	}
-	headers := map[string]string{
-		"Location": fmt.Sprintf("/shows/%d", show.ID),
-	}
-	if err := responses.SendEntity(w, &show, http.StatusCreated, headers); err != nil {
+	w.Header().Set("Location", fmt.Sprintf("/shows/%d", show.ID))
+	if err := responses.SendEntity(w, &show, http.StatusCreated); err != nil {
 		log.Fatal(err)
 	}
 }
 
-// ShowsShow is the HTTP endpoint used to show Shows instance by ID
-func ShowsShow(w http.ResponseWriter, r *http.Request) {
+// ShowsView is the HTTP endpoint used to show Shows instance by ID
+func (res ShowResource) RouteView(w http.ResponseWriter, r *http.Request) {
 	vars := router.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
@@ -176,13 +141,13 @@ func ShowsShow(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	if err := responses.SendEntity(w, &show, http.StatusOK, nil); err != nil {
+	if err := responses.SendEntity(w, &show, http.StatusOK); err != nil {
 		log.Fatal(err)
 	}
 }
 
 // ShowsUpdate is the HTTP endpoint used to update a Show instance by its ID
-func ShowsUpdate(w http.ResponseWriter, r *http.Request) {
+func (res ShowResource) RouteUpdate(w http.ResponseWriter, r *http.Request) {
 	vars := router.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
@@ -283,7 +248,7 @@ func ShowsUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 // ShowsDestroy is the HTTP endpoint used to delete a Show instance by its ID
-func ShowsDestroy(w http.ResponseWriter, r *http.Request) {
+func (res ShowResource) RouteDestroy(w http.ResponseWriter, r *http.Request) {
 	vars := router.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {

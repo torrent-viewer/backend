@@ -37,13 +37,8 @@ type errorResponse struct {
 	Errors Errors `json:"errors"`
 }
 
-func setContentType(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/vnd.api+json; charset=UTF-8")
-}
-
 // SendError writes a single Error to w
 func SendError(w http.ResponseWriter, errcode int, e Error) error {
-	setContentType(w)
 	w.WriteHeader(errcode)
 	response := errorResponse{
 		Errors: Errors{
@@ -55,7 +50,6 @@ func SendError(w http.ResponseWriter, errcode int, e Error) error {
 
 // SendErrors writes multiple Errors to w
 func SendErrors(w http.ResponseWriter, errcode int, e Errors) error {
-	setContentType(w)
 	w.WriteHeader(errcode)
 	response := errorResponse{
 		Errors: e,
@@ -64,25 +58,19 @@ func SendErrors(w http.ResponseWriter, errcode int, e Errors) error {
 }
 
 // SendEntity marshalls the given entity and writes it to w
-func SendEntity(w http.ResponseWriter, entity interface{}, status int, headers map[string]string) error {
-	setContentType(w)
-	for k, v := range headers {
-		w.Header().Set(k, v)
-	}
+func SendEntity(w http.ResponseWriter, entity interface{}, status int) error {
 	w.WriteHeader(status)
 	return jsonapi.MarshalOnePayload(w, entity)
 }
 
 // SendEntities marshalls the given entities and writes them to w
 func SendEntities(w http.ResponseWriter, entities []interface{}) error {
-	setContentType(w)
 	w.WriteHeader(http.StatusOK)
 	return jsonapi.MarshalManyPayload(w, entities)
 }
 
 // SendNoContent sends a HTTP 204 to the client
 func SendNoContent(w http.ResponseWriter) error {
-	setContentType(w)
 	w.WriteHeader(http.StatusNoContent)
 	return nil
 }
