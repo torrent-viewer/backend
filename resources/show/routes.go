@@ -105,7 +105,6 @@ func (res ShowResource) RouteUpdate(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	log.Println("Updating resource...")
 	if err := datastore.UpdateEntity(&show); err != nil {
 		if e := responses.SendError(w, http.StatusInternalServerError, *err); e != nil {
 			log.Fatal(e)
