@@ -2,46 +2,21 @@ package responses
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/shwoodard/jsonapi"
+	"github.com/torrent-viewer/backend/herr"
 )
 
-type ErrorSource struct {
-	Pointer   string `json:"pointer,omitempty"`
-	Parameter string `json:"parameter,omitempty"`
-}
-
-// Error represent an API Error that will be sent to a client
-type Error struct {
-	ID    string `json:"id"`
-	Links struct {
-		About string `json:"about,omitempty"`
-	} `json:"links,omitempty"`
-	Status string      `json:"status,omitempty"`
-	Code   string      `json:"code,omitempty"`
-	Title  string      `json:"title,omitempty"`
-	Detail string      `json:"detail,omitempty"`
-	Source ErrorSource `json:"source,omitempty"`
-	Meta   interface{} `json:"meta,omitempty"`
-}
-
-type Errors []Error
-
-func (e Error) Error() string {
-	return fmt.Sprintf("HTTP %s: %s (%s)", e.Code, e.Title, e.ID)
-}
-
 type errorResponse struct {
-	Errors Errors `json:"errors"`
+	Errors herr.Errors `json:"errors"`
 }
 
 // SendError writes a single Error to w
-func SendError(w http.ResponseWriter, errcode int, e Error) error {
+func SendError(w http.ResponseWriter, errcode int, e herr.Error) error {
 	w.WriteHeader(errcode)
 	response := errorResponse{
-		Errors: Errors{
+		Errors: herr.Errors{
 			e,
 		},
 	}
@@ -49,7 +24,7 @@ func SendError(w http.ResponseWriter, errcode int, e Error) error {
 }
 
 // SendErrors writes multiple Errors to w
-func SendErrors(w http.ResponseWriter, errcode int, e Errors) error {
+func SendErrors(w http.ResponseWriter, errcode int, e herr.Errors) error {
 	w.WriteHeader(errcode)
 	response := errorResponse{
 		Errors: e,

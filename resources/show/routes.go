@@ -4,32 +4,27 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 
-	"github.com/asaskevich/govalidator"
-	"github.com/shwoodard/jsonapi"
-	"github.com/torrent-viewer/backend/database"
+	"github.com/torrent-viewer/backend/datastore"
 	"github.com/torrent-viewer/backend/responses"
-	"github.com/torrent-viewer/backend/router"
+	"github.com/torrent-viewer/backend/requests"
+	"github.com/torrent-viewer/backend/herr"
 )
 
 // ShowsList is the HTTP endpoint used to create list Shows instances
 func (res ShowResource) RouteList(w http.ResponseWriter, r *http.Request) {
 	var entries Shows
-	if err := database.Conn.Find(&entries).Error; err != nil {
-		e := responses.Error{
-			ID:     "database-error",
-			Status: "500",
-			Title:  "Database Error",
-			Detail: err.Error(),
-		}
-		log.Println(e)
-		if err := responses.SendError(w, http.StatusInternalServerError, e); err != nil {
-			log.Fatal(err)
+	if err := datastore.FetchEntities(&entries); err != nil {
+		if e := responses.SendError(w, http.StatusInternalServerError, *err); e != nil {
+			log.Fatal(e)
 		}
 		return
 	}
-	if err := responses.SendEntities(w, entries); err != nil {
+	serialized := make([]interface{}, len(entries), len(entries))
+	for i, e := range entries {
+		serialized[i] = e
+	}
+	if err := responses.SendEntities(w, serialized); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -37,61 +32,23 @@ func (res ShowResource) RouteList(w http.ResponseWriter, r *http.Request) {
 // ShowsStore is the HTTP endpoint used to create new Shows instances
 func (res ShowResource) RouteStore(w http.ResponseWriter, r *http.Request) {
 	var show Show
-	if err := jsonapi.UnmarshalPayload(r.Body, &show); err != nil {
-		e := responses.Error{
-			ID:     "malformated-input",
-			Status: "400",
-			Title:  "Malformated input",
-			Detail: err.Error(),
-		}
-		log.Println(e)
-		if err := responses.SendError(w, http.StatusBadRequest, e); err != nil {
-			log.Fatal(err)
+	if err := requests.ReceiveEntity(r, &show); err != nil {
+		if e := responses.SendError(w, http.StatusBadRequest, *err); e != nil {
+			log.Fatal(e)
 		}
 		return
 	}
-	if result, err := govalidator.ValidateStruct(show); err != nil || result != true {
-		e := responses.Error{
-			ID:     "validation-error",
-			Status: "400",
-			Title:  "Validation Error",
-		}
-		if err != nil {
-			e.Detail = err.Error()
-		}
-		log.Println(e)
-		if err := responses.SendError(w, http.StatusBadRequest, e); err != nil {
-			log.Fatal(err)
+	if datastore.Conn.NewRecord(&show) != true {
+		if e := responses.SendError(w, http.StatusConflict, herr.DuplicateEntryError); e != nil {
+			log.Fatal(e)
 		}
 		return
 	}
-	if database.Conn.NewRecord(&show) != true {
-		e := responses.Error{
-			ID:     "duplicate-entry",
-			Status: "409",
-			Title:  "Duplicate Entry",
-			Detail: "Trying to create a resource with an existing ID",
-			Source: responses.ErrorSource{
-				Pointer: "/data/id",
-			},
-		}
-		log.Println(e)
-		if err := responses.SendError(w, http.StatusConflict, e); err != nil {
-			log.Fatal(err)
+	if err := datastore.StoreEntity(&show); err != nil {
+		if e := responses.SendError(w, http.StatusInternalServerError, *err); e != nil {
+			log.Fatal(e)
 		}
 		return
-	}
-	if err := database.Conn.Create(&show).Error; err != nil {
-		e := responses.Error{
-			ID:     "database-error",
-			Status: "500",
-			Title:  "Database Error",
-			Detail: err.Error(),
-		}
-		log.Println(e)
-		if err := responses.SendError(w, http.StatusInternalServerError, e); err != nil {
-			log.Fatal(err)
-		}
 	}
 	w.Header().Set("Location", fmt.Sprintf("/shows/%d", show.ID))
 	if err := responses.SendEntity(w, &show, http.StatusCreated); err != nil {
@@ -101,43 +58,17 @@ func (res ShowResource) RouteStore(w http.ResponseWriter, r *http.Request) {
 
 // ShowsView is the HTTP endpoint used to show Shows instance by ID
 func (res ShowResource) RouteView(w http.ResponseWriter, r *http.Request) {
-	vars := router.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+	id, err := requests.ParseID(r)
 	if err != nil {
-		e := responses.Error{
-			ID:     "integer-conversion",
-			Status: "400",
-			Title:  "Integer Conversion Error",
-			Detail: err.Error(),
-		}
-		if err := responses.SendError(w, http.StatusBadRequest, e); err != nil {
-			log.Fatal(err)
+		if e := responses.SendError(w, http.StatusBadRequest, *err); e != nil {
+			log.Fatal(e)
 		}
 		return
 	}
 	var show Show
-	d := database.Conn.First(&show, id)
-	if d.RecordNotFound() != false {
-		err := d.Error
-		e := responses.Error{
-			ID:     "not-found",
-			Status: "404",
-			Title:  "Not Found",
-			Detail: err.Error(),
-		}
-		if err := responses.SendError(w, http.StatusNotFound, e); err != nil {
-			log.Fatal(err)
-		}
-		return
-	} else if err := d.Error; err != nil {
-		e := responses.Error{
-			ID:     "database-error",
-			Status: "500",
-			Title:  "Database Error",
-			Detail: err.Error(),
-		}
-		if err := responses.SendError(w, http.StatusInternalServerError, e); err != nil {
-			log.Fatal(err)
+	if err := datastore.FetchEntity(&show, id); err != nil {
+		if e := responses.SendError(w, http.StatusNotFound, *err); e != nil {
+			log.Fatal(e)
 		}
 		return
 	}
@@ -148,99 +79,38 @@ func (res ShowResource) RouteView(w http.ResponseWriter, r *http.Request) {
 
 // ShowsUpdate is the HTTP endpoint used to update a Show instance by its ID
 func (res ShowResource) RouteUpdate(w http.ResponseWriter, r *http.Request) {
-	vars := router.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+	id, err := requests.ParseID(r)
 	if err != nil {
-		e := responses.Error{
-			ID:     "integer-conversion",
-			Status: "400",
-			Title:  "Integer Conversion Error",
-			Detail: err.Error(),
-		}
-		if err := responses.SendError(w, http.StatusBadRequest, e); err != nil {
-			log.Fatal(err)
+		if e := responses.SendError(w, http.StatusBadRequest, *err); e != nil {
+			log.Fatal(e)
 		}
 		return
 	}
 	var show Show
-	d := database.Conn.First(&show, id)
-	if d.RecordNotFound() != false {
-		err := d.Error
-		e := responses.Error{
-			ID:     "not-found",
-			Status: "404",
-			Title:  "Not Found",
-			Detail: err.Error(),
-		}
-		if err := responses.SendError(w, http.StatusNotFound, e); err != nil {
-			log.Fatal(err)
-		}
-		return
-	} else if err := d.Error; err != nil {
-		e := responses.Error{
-			ID:     "database-error",
-			Status: "500",
-			Title:  "Database Error",
-			Detail: err.Error(),
-		}
-		if err := responses.SendError(w, http.StatusInternalServerError, e); err != nil {
-			log.Fatal(err)
+	if err := datastore.FetchEntity(&show, id); err != nil {
+		if e := responses.SendError(w, http.StatusNotFound, *err); e != nil {
+			log.Fatal(e)
 		}
 		return
 	}
-	if err := jsonapi.UnmarshalPayload(r.Body, &show); err != nil {
-		e := responses.Error{
-			ID:     "malformated-input",
-			Status: "400",
-			Title:  "Malformated input",
-		}
-		if err := responses.SendError(w, http.StatusBadRequest, e); err != nil {
-			log.Fatal(err)
+	if err := requests.ReceiveEntity(r, &show); err != nil {
+		if e := responses.SendError(w, http.StatusBadRequest, *err); e != nil {
+			log.Fatal(e)
 		}
 		return
 	}
 	if show.ID != id {
-		e := responses.Error{
-			ID:     "unmatched-ids",
-			Status: "400",
-			Title:  "IDs do not match",
-			Detail: "The URL ID does not match the input ID",
-			Source: responses.ErrorSource{
-				Pointer: "/data/id",
-			},
-		}
-		log.Println(e)
-		if err := responses.SendError(w, http.StatusBadRequest, e); err != nil {
+		if err := responses.SendError(w, http.StatusBadRequest, herr.UnmatchingIDsError); err != nil {
 			log.Fatal(err)
 		}
 		return
 	}
-	if result, err := govalidator.ValidateStruct(show); err != nil || result != true {
-		e := responses.Error{
-			ID:     "validation-error",
-			Status: "400",
-			Title:  "Validation Error",
-		}
-		if err != nil {
-			e.Detail = err.Error()
-		}
-		log.Println(e)
-		if err := responses.SendError(w, http.StatusBadRequest, e); err != nil {
-			log.Fatal(err)
+	log.Println("Updating resource...")
+	if err := datastore.UpdateEntity(&show); err != nil {
+		if e := responses.SendError(w, http.StatusInternalServerError, *err); e != nil {
+			log.Fatal(e)
 		}
 		return
-	}
-	if err := database.Conn.Model(&show).Update(&show).Error; err != nil {
-		e := responses.Error{
-			ID:     "database-error",
-			Status: "500",
-			Title:  "Database Error",
-			Detail: err.Error(),
-		}
-		log.Println(e)
-		if err := responses.SendError(w, http.StatusInternalServerError, e); err != nil {
-			log.Fatal(err)
-		}
 	}
 	if err := responses.SendNoContent(w); err != nil {
 		log.Fatal(err)
@@ -249,33 +119,19 @@ func (res ShowResource) RouteUpdate(w http.ResponseWriter, r *http.Request) {
 
 // ShowsDestroy is the HTTP endpoint used to delete a Show instance by its ID
 func (res ShowResource) RouteDestroy(w http.ResponseWriter, r *http.Request) {
-	vars := router.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+	id, err := requests.ParseID(r)
 	if err != nil {
-		e := responses.Error{
-			ID:     "integer-conversion",
-			Status: "400",
-			Title:  "Integer Conversion Error",
-			Detail: err.Error(),
-		}
-		if err := responses.SendError(w, http.StatusBadRequest, e); err != nil {
-			log.Fatal(err)
+		if e := responses.SendError(w, http.StatusBadRequest, *err); e != nil {
+			log.Fatal(e)
 		}
 		return
 	}
 	show := Show{
 		ID: id,
 	}
-	if err := database.Conn.Delete(&show).Error; err != nil {
-		e := responses.Error{
-			ID:     "database-error",
-			Status: "500",
-			Title:  "Database Error",
-			Detail: err.Error(),
-		}
-		log.Println(e)
-		if err := responses.SendError(w, http.StatusInternalServerError, e); err != nil {
-			log.Fatal(err)
+	if err := datastore.DeleteEntity(&show); err != nil {
+		if e := responses.SendError(w, http.StatusInternalServerError, *err); e != nil {
+			log.Fatal(e)
 		}
 	}
 	if err := responses.SendNoContent(w); err != nil {

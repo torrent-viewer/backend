@@ -15,7 +15,7 @@ import (
 	// Initialize SQLite driver
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/shwoodard/jsonapi"
-	"github.com/torrent-viewer/backend/database"
+	"github.com/torrent-viewer/backend/datastore"
 	"github.com/torrent-viewer/backend/router"
 )
 
@@ -26,15 +26,16 @@ var (
 )
 
 func TestMain(m *testing.M) {
+	resource := ShowResource{}
 	flag.Parse()
-	database.Init("sqlite3", "/tmp/torrent-viewer-test.db")
-	database.Conn.AutoMigrate(&Show{})
+	datastore.Init("sqlite3", "", "", "", "", "/tmp/torrent-viewer-test.db")
+	datastore.Conn.AutoMigrate(&Show{})
 	r := router.NewRouter()
-	RegisterHandlers(r)
+	r.AddResource("shows", resource)
 	server = httptest.NewServer(r)
 	baseURL = fmt.Sprintf("%s/shows", server.URL)
 	ret := m.Run()
-	database.Conn.DropTable(&Show{})
+	datastore.Conn.DropTable(&Show{})
 	os.Exit(ret)
 }
 
@@ -168,16 +169,12 @@ func TestShowsUpdate(t *testing.T) {
 	}
 	input = buf.String()
 	response = testEndpoint(t, "PATCH", fmt.Sprintf("%s/%d", baseURL, show.ID+1), &input)
-	if response.StatusCode != http.StatusBadRequest {
-		t.Errorf("Expected HTTP %d, got HTTP %d", http.StatusBadRequest, response.StatusCode)
+	if response.StatusCode != http.StatusNotFound {
+		t.Errorf("Expected HTTP %d, got HTTP %d", http.StatusNotFound, response.StatusCode)
 	}
 	response = testEndpoint(t, "PATCH", fmt.Sprintf("%s/%d", baseURL, show.ID), &input)
 	if response.StatusCode != http.StatusNoContent {
 		t.Errorf("Expected HTTP %d, got HTTP %d", http.StatusCreated, response.StatusCode)
-	}
-	response = testEndpoint(t, "GET", fmt.Sprintf("%s/%d", baseURL, math.MaxInt32), nil)
-	if response.StatusCode != http.StatusNotFound {
-		t.Errorf("Expected HTTP %d, got HTTP %d", http.StatusNotFound, response.StatusCode)
 	}
 	show.ID += 1000
 	buf = new(bytes.Buffer)
@@ -186,8 +183,8 @@ func TestShowsUpdate(t *testing.T) {
 		return
 	}
 	input = buf.String()
-	response = testEndpoint(t, "PATCH", fmt.Sprintf("%s/%d", baseURL, show.ID), &input)
-	if response.StatusCode != http.StatusNotFound {
-		t.Errorf("Expected HTTP %d, got HTTP %d", http.StatusNotFound, response.StatusCode)
+	response = testEndpoint(t, "PATCH", fmt.Sprintf("%s/%d", baseURL, show.ID - 1000), &input)
+	if response.StatusCode != http.StatusBadRequest {
+		t.Errorf("Expected HTTP %d, got HTTP %d", http.StatusBadRequest, response.StatusCode)
 	}
 }

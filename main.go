@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/gorilla/handlers"
-	"github.com/torrent-viewer/backend/database"
+	"github.com/torrent-viewer/backend/datastore"
 	"github.com/torrent-viewer/backend/resources/show"
 	"github.com/torrent-viewer/backend/router"
 )
@@ -20,18 +20,18 @@ func main() {
 	dbPort := os.Getenv("TV_DB_PORT")
 	dbBase := os.Getenv("TV_DB_BASE")
 	log.Printf("Connection to %s database: %s:%s@%s:%s/%s", dbDriver, dbUser, dbPassword, dbHost, dbPort, dbBase)
-	err := database.Init(dbDriver, dbUser, dbPassword, dbHost, dbPort, dbBase)
+	err := datastore.Init(dbDriver, dbUser, dbPassword, dbHost, dbPort, dbBase)
 	if err != nil {
 		for {
 			log.Println("Could not connect to database\n", err, "\nRetrying in 1 second...")
 			time.Sleep(1000 * time.Millisecond)
-			err = database.Init(dbDriver, dbUser, dbPassword, dbHost, dbPort, dbBase)
+			err = datastore.Init(dbDriver, dbUser, dbPassword, dbHost, dbPort, dbBase)
 			if err == nil {
 				break
 			}
 		}
 	}
-	database.Conn.AutoMigrate(&show.Show{})
+	datastore.Conn.AutoMigrate(&show.Show{})
 	r := router.NewRouter()
 	r.Use(router.LoggingMiddleware)
 	r.Use(handlers.CORS())
