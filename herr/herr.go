@@ -2,6 +2,7 @@ package herr
 
 import (
 	"fmt"
+	"strconv"
 )
 
 // ErrorSource point to the source of an error.
@@ -49,4 +50,12 @@ var DuplicateEntryError = Error{
 
 func (e Error) Error() string {
 	return fmt.Sprintf("HTTP %s: %s (%s)", e.Code, e.Title, e.ID)
+}
+
+func (e Error) StatusCode() int {
+	status, err := strconv.Atoi(e.Status)
+	if err != nil {
+		return 500
+	}
+	return status
 }

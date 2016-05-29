@@ -15,7 +15,7 @@ import (
 func (res ShowResource) RouteList(w http.ResponseWriter, r *http.Request) {
 	var entries Shows
 	if err := datastore.FetchEntities(&entries); err != nil {
-		if e := responses.SendError(w, http.StatusInternalServerError, *err); e != nil {
+		if e := responses.SendError(w, (*err).StatusCode(), *err); e != nil {
 			log.Fatal(e)
 		}
 		return
@@ -33,19 +33,13 @@ func (res ShowResource) RouteList(w http.ResponseWriter, r *http.Request) {
 func (res ShowResource) RouteStore(w http.ResponseWriter, r *http.Request) {
 	var show Show
 	if err := requests.ReceiveEntity(r, &show); err != nil {
-		if e := responses.SendError(w, http.StatusBadRequest, *err); e != nil {
-			log.Fatal(e)
-		}
-		return
-	}
-	if datastore.Conn.NewRecord(&show) != true {
-		if e := responses.SendError(w, http.StatusConflict, herr.DuplicateEntryError); e != nil {
+		if e := responses.SendError(w, (*err).StatusCode(), *err); e != nil {
 			log.Fatal(e)
 		}
 		return
 	}
 	if err := datastore.StoreEntity(&show); err != nil {
-		if e := responses.SendError(w, http.StatusInternalServerError, *err); e != nil {
+		if e := responses.SendError(w, (*err).StatusCode(), *err); e != nil {
 			log.Fatal(e)
 		}
 		return
@@ -60,14 +54,14 @@ func (res ShowResource) RouteStore(w http.ResponseWriter, r *http.Request) {
 func (res ShowResource) RouteView(w http.ResponseWriter, r *http.Request) {
 	id, err := requests.ParseID(r)
 	if err != nil {
-		if e := responses.SendError(w, http.StatusBadRequest, *err); e != nil {
+		if e := responses.SendError(w, (*err).StatusCode(), *err); e != nil {
 			log.Fatal(e)
 		}
 		return
 	}
 	var show Show
 	if err := datastore.FetchEntity(&show, id); err != nil {
-		if e := responses.SendError(w, http.StatusNotFound, *err); e != nil {
+		if e := responses.SendError(w, (*err).StatusCode(), *err); e != nil {
 			log.Fatal(e)
 		}
 		return
@@ -81,32 +75,32 @@ func (res ShowResource) RouteView(w http.ResponseWriter, r *http.Request) {
 func (res ShowResource) RouteUpdate(w http.ResponseWriter, r *http.Request) {
 	id, err := requests.ParseID(r)
 	if err != nil {
-		if e := responses.SendError(w, http.StatusBadRequest, *err); e != nil {
+		if e := responses.SendError(w, (*err).StatusCode(), *err); e != nil {
 			log.Fatal(e)
 		}
 		return
 	}
 	var show Show
 	if err := datastore.FetchEntity(&show, id); err != nil {
-		if e := responses.SendError(w, http.StatusNotFound, *err); e != nil {
+		if e := responses.SendError(w, (*err).StatusCode(), *err); e != nil {
 			log.Fatal(e)
 		}
 		return
 	}
 	if err := requests.ReceiveEntity(r, &show); err != nil {
-		if e := responses.SendError(w, http.StatusBadRequest, *err); e != nil {
+		if e := responses.SendError(w, (*err).StatusCode(), *err); e != nil {
 			log.Fatal(e)
 		}
 		return
 	}
 	if show.ID != id {
-		if err := responses.SendError(w, http.StatusBadRequest, herr.UnmatchingIDsError); err != nil {
+		if err := responses.SendError(w, herr.UnmatchingIDsError.StatusCode(), herr.UnmatchingIDsError); err != nil {
 			log.Fatal(err)
 		}
 		return
 	}
 	if err := datastore.UpdateEntity(&show); err != nil {
-		if e := responses.SendError(w, http.StatusInternalServerError, *err); e != nil {
+		if e := responses.SendError(w, (*err).StatusCode(), *err); e != nil {
 			log.Fatal(e)
 		}
 		return
@@ -120,7 +114,7 @@ func (res ShowResource) RouteUpdate(w http.ResponseWriter, r *http.Request) {
 func (res ShowResource) RouteDestroy(w http.ResponseWriter, r *http.Request) {
 	id, err := requests.ParseID(r)
 	if err != nil {
-		if e := responses.SendError(w, http.StatusBadRequest, *err); e != nil {
+		if e := responses.SendError(w, (*err).StatusCode(), *err); e != nil {
 			log.Fatal(e)
 		}
 		return
@@ -129,7 +123,7 @@ func (res ShowResource) RouteDestroy(w http.ResponseWriter, r *http.Request) {
 		ID: id,
 	}
 	if err := datastore.DeleteEntity(&show); err != nil {
-		if e := responses.SendError(w, http.StatusInternalServerError, *err); e != nil {
+		if e := responses.SendError(w, (*err).StatusCode(), *err); e != nil {
 			log.Fatal(e)
 		}
 	}
