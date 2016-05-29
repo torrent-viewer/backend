@@ -12,6 +12,8 @@ import (
 // Conn is the database connection used to store data
 var Conn *gorm.DB
 
+// Identifiable represent an entity that can be identified by its unique ID
+// All of the models used with this datastore must be identifiable.
 type Identifiable interface {
 	GetID() int
 }
@@ -35,7 +37,7 @@ func Init(driver string, user string, password string, host string, port string,
 }
 
 // FetchEntities fetch entities from the datastore with the given constraints
-func FetchEntities(out interface{}, where ...interface{}) *herr.Error {
+func FetchEntities(out Identifiable, where ...interface{}) *herr.Error {
 	if err := Conn.Find(out, where...).Error; err != nil {
 		e := herr.Error{
 			ID:     "database-error",
@@ -49,7 +51,7 @@ func FetchEntities(out interface{}, where ...interface{}) *herr.Error {
 }
 
 // FetchEntity fetch an entity based on its ID
-func FetchEntity(out interface{}, id int) *herr.Error {
+func FetchEntity(out Identifiable, id int) *herr.Error {
 	d := Conn.First(out, id)
 	if d.RecordNotFound() != false {
 		err := d.Error
@@ -72,7 +74,7 @@ func FetchEntity(out interface{}, id int) *herr.Error {
 
 // StoreEntity store a new entity in the datastore.
 // The stored entity is not allowed to specify an ID.
-func StoreEntity(in interface{}) *herr.Error {
+func StoreEntity(in Identifiable) *herr.Error {
 	if Conn.NewRecord(in) != true {
 		return &herr.DuplicateEntryError;
 	}
@@ -88,7 +90,7 @@ func StoreEntity(in interface{}) *herr.Error {
 }
 
 // UpdateEntity update an entity in the datastore
-func UpdateEntity(in interface{}) *herr.Error {
+func UpdateEntity(in Identifiable) *herr.Error {
 	if err := Conn.Model(in).Update(in).Error; err != nil {
 		return &herr.Error{
 			ID:     "database-error",
