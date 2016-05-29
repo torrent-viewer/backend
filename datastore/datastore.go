@@ -64,6 +64,9 @@ func FetchEntity(out interface{}, id int) *herr.Error {
 }
 
 func StoreEntity(in interface{}) *herr.Error {
+	if Conn.NewRecord(in) != true {
+		return &herr.DuplicateEntryError;
+	}
 	if err := Conn.Create(in).Error; err != nil {
 		return &herr.Error{
 			ID:     "database-error",
