@@ -126,6 +126,7 @@ func (res ShowResource) RouteDestroy(w http.ResponseWriter, r *http.Request) {
 		if e := responses.SendError(w, (*err).StatusCode(), *err); e != nil {
 			log.Fatal(e)
 		}
+		return
 	}
 	if err := responses.SendNoContent(w); err != nil {
 		log.Fatal(err)

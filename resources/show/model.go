@@ -22,3 +22,7 @@ type ShowResource struct {}
 func (Show) TableName() string {
 	return "shows";
 }
+
+func (s Show) GetID() int {
+	return s.ID;
+}

@@ -9,7 +9,12 @@ import (
 	"github.com/torrent-viewer/backend/herr"
 )
 
+// Conn is the database connection used to store data
 var Conn *gorm.DB
+
+type Identifiable interface {
+	GetID() int
+}
 
 // Init initializes the database connection
 func Init(driver string, user string, password string, host string, port string, database string) error {
@@ -29,6 +34,7 @@ func Init(driver string, user string, password string, host string, port string,
 	return nil
 }
 
+// FetchEntities fetch entities from the datastore with the given constraints
 func FetchEntities(out interface{}, where ...interface{}) *herr.Error {
 	if err := Conn.Find(out, where...).Error; err != nil {
 		e := herr.Error{
@@ -42,6 +48,7 @@ func FetchEntities(out interface{}, where ...interface{}) *herr.Error {
 	return nil
 }
 
+// FetchEntity fetch an entity based on its ID
 func FetchEntity(out interface{}, id int) *herr.Error {
 	d := Conn.First(out, id)
 	if d.RecordNotFound() != false {
@@ -63,6 +70,8 @@ func FetchEntity(out interface{}, id int) *herr.Error {
 	return nil
 }
 
+// StoreEntity store a new entity in the datastore.
+// The stored entity is not allowed to specify an ID.
 func StoreEntity(in interface{}) *herr.Error {
 	if Conn.NewRecord(in) != true {
 		return &herr.DuplicateEntryError;
@@ -78,6 +87,7 @@ func StoreEntity(in interface{}) *herr.Error {
 	return nil
 }
 
+// UpdateEntity update an entity in the datastore
 func UpdateEntity(in interface{}) *herr.Error {
 	if err := Conn.Model(in).Update(in).Error; err != nil {
 		return &herr.Error{
@@ -90,7 +100,26 @@ func UpdateEntity(in interface{}) *herr.Error {
 	return nil
 }
 
-func DeleteEntity(in interface{}) *herr.Error {
+// DeleteEntity delete an entity in the datastore,
+// using the ID property of the given model.
+func DeleteEntity(in Identifiable) *herr.Error {
+	var count int
+	if err := Conn.Model(in).Where("id = ?", in.GetID()).Count(&count).Error; err != nil {
+		return &herr.Error{
+			ID:     "database-error",
+			Status: "500",
+			Title:  "Database Error",
+			Detail: err.Error(),
+		}
+	}
+	if count == 0 {
+		return &herr.Error{
+			ID:     "not-found",
+			Status: "404",
+			Title:  "Not Found",
+			Detail: "The requested resource was not found in the datastore.",
+		}
+	}
 	if err := Conn.Delete(in).Error; err != nil {
 		return &herr.Error{
 			ID:     "database-error",

@@ -48,10 +48,13 @@ var DuplicateEntryError = Error{
 	},
 }
 
+// Error allow herr.Error to be considered a go error
 func (e Error) Error() string {
 	return fmt.Sprintf("HTTP %s: %s (%s)", e.Code, e.Title, e.ID)
 }
 
+// StatusCode parses the Status field of an error.
+// Returns 500 if there was en error while parsing it
 func (e Error) StatusCode() int {
 	status, err := strconv.Atoi(e.Status)
 	if err != nil {

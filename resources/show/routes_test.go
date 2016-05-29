@@ -132,6 +132,10 @@ func TestShowsShow(t *testing.T) {
 	if response.StatusCode != http.StatusNotFound {
 		t.Errorf("Expected HTTP %d, got HTTP %d", http.StatusNotFound, response.StatusCode)
 	}
+	response = testEndpoint(t, "GET", fmt.Sprintf("%s/%d", baseURL, math.MaxInt32), nil)
+	if response.StatusCode != http.StatusNotFound {
+		t.Errorf("Expected HTTP %d, got HTTP %d", http.StatusNotFound, response.StatusCode)
+	}
 	response = testEndpoint(t, "GET", fmt.Sprintf("%s/%s", baseURL, integerOverflow), nil)
 	if response.StatusCode != http.StatusBadRequest {
 		t.Errorf("Expected HTTP %d, got HTTP %d", http.StatusBadRequest, response.StatusCode)
@@ -172,6 +176,10 @@ func TestShowsUpdate(t *testing.T) {
 	if response.StatusCode != http.StatusNotFound {
 		t.Errorf("Expected HTTP %d, got HTTP %d", http.StatusNotFound, response.StatusCode)
 	}
+	response = testEndpoint(t, "PATCH", fmt.Sprintf("%s/%s", baseURL, integerOverflow), &input)
+	if response.StatusCode != http.StatusBadRequest {
+		t.Errorf("Expected HTTP %d, got HTTP %d", http.StatusBadRequest, response.StatusCode)
+	}
 	response = testEndpoint(t, "PATCH", fmt.Sprintf("%s/%d", baseURL, show.ID), &input)
 	if response.StatusCode != http.StatusNoContent {
 		t.Errorf("Expected HTTP %d, got HTTP %d", http.StatusCreated, response.StatusCode)
@@ -186,5 +194,38 @@ func TestShowsUpdate(t *testing.T) {
 	response = testEndpoint(t, "PATCH", fmt.Sprintf("%s/%d", baseURL, show.ID - 1000), &input)
 	if response.StatusCode != http.StatusBadRequest {
 		t.Errorf("Expected HTTP %d, got HTTP %d", http.StatusBadRequest, response.StatusCode)
+	}
+}
+
+func TestShowsDestroy(t *testing.T) {
+	input := `{
+    "data": {
+      "type": "shows",
+      "attributes": {
+        "title": "Star Wars VII",
+        "year": 2015
+      }
+    }
+  }`
+	response := testEndpoint(t, "POST", baseURL, &input)
+	if response.StatusCode != http.StatusCreated {
+		t.Errorf("Expected HTTP %d, got HTTP %d", http.StatusCreated, response.StatusCode)
+	}
+	var show Show
+	if err := jsonapi.UnmarshalPayload(response.Body, &show); err != nil {
+		t.Error(err)
+		return
+	}
+	response = testEndpoint(t, "DELETE", fmt.Sprintf("%s/%s", baseURL, integerOverflow), nil)
+	if response.StatusCode != http.StatusBadRequest {
+		t.Errorf("Expected HTTP %d, got HTTP %d", http.StatusBadRequest, response.StatusCode)
+	}
+	response = testEndpoint(t, "DELETE", fmt.Sprintf("%s/%d", baseURL, math.MaxInt32), nil)
+	if response.StatusCode != http.StatusNotFound {
+		t.Errorf("Expected HTTP %d, got HTTP %d", http.StatusNotFound, response.StatusCode)
+	}
+	response = testEndpoint(t, "DELETE", fmt.Sprintf("%s/%d", baseURL, show.ID), nil)
+	if response.StatusCode != http.StatusNoContent {
+		t.Errorf("Expected HTTP %d, got HTTP %d", http.StatusNoContent, response.StatusCode)
 	}
 }
