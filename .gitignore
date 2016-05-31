@@ -28,3 +28,7 @@ _testmain.go
 /.idea
 *.swp
 *~
+
+# Test coverage files
+*.out
+*.cov
