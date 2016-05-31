@@ -2,7 +2,6 @@ package show
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/torrent-viewer/backend/datastore"
@@ -12,123 +11,89 @@ import (
 )
 
 // ShowsList is the HTTP endpoint used to create list Shows instances
-func (res ShowResource) RouteList(w http.ResponseWriter, r *http.Request) {
+func (ShowResource) RouteList(w http.ResponseWriter, r *http.Request) {
 	var entries Shows
 	if err := datastore.FetchEntities(&entries); err != nil {
-		if e := responses.SendError(w, (*err).StatusCode(), *err); e != nil {
-			log.Fatal(e)
-		}
+		responses.SendError(w, *err)
 		return
 	}
 	serialized := make([]interface{}, len(entries), len(entries))
 	for i, e := range entries {
 		serialized[i] = e
 	}
-	if err := responses.SendEntities(w, serialized); err != nil {
-		log.Fatal(err)
-	}
+	responses.SendEntities(w, serialized)
 }
 
 // ShowsStore is the HTTP endpoint used to create new Shows instances
-func (res ShowResource) RouteStore(w http.ResponseWriter, r *http.Request) {
+func (ShowResource) RouteStore(w http.ResponseWriter, r *http.Request) {
 	var show Show
 	if err := requests.ReceiveEntity(r, &show); err != nil {
-		if e := responses.SendError(w, (*err).StatusCode(), *err); e != nil {
-			log.Fatal(e)
-		}
+		responses.SendError(w, *err)
 		return
 	}
 	if err := datastore.StoreEntity(&show); err != nil {
-		if e := responses.SendError(w, (*err).StatusCode(), *err); e != nil {
-			log.Fatal(e)
-		}
+		responses.SendError(w, *err)
 		return
 	}
 	w.Header().Set("Location", fmt.Sprintf("/shows/%d", show.ID))
-	if err := responses.SendEntity(w, &show, http.StatusCreated); err != nil {
-		log.Fatal(err)
-	}
+	responses.SendEntity(w, &show, http.StatusCreated)
 }
 
 // ShowsView is the HTTP endpoint used to show Shows instance by ID
-func (res ShowResource) RouteView(w http.ResponseWriter, r *http.Request) {
+func (ShowResource) RouteView(w http.ResponseWriter, r *http.Request) {
 	id, err := requests.ParseID(r)
 	if err != nil {
-		if e := responses.SendError(w, (*err).StatusCode(), *err); e != nil {
-			log.Fatal(e)
-		}
+		responses.SendError(w, *err)
 		return
 	}
 	var show Show
 	if err := datastore.FetchEntity(&show, id); err != nil {
-		if e := responses.SendError(w, (*err).StatusCode(), *err); e != nil {
-			log.Fatal(e)
-		}
+		responses.SendError(w, *err)
 		return
 	}
-	if err := responses.SendEntity(w, &show, http.StatusOK); err != nil {
-		log.Fatal(err)
-	}
+	responses.SendEntity(w, &show, http.StatusOK)
 }
 
 // ShowsUpdate is the HTTP endpoint used to update a Show instance by its ID
-func (res ShowResource) RouteUpdate(w http.ResponseWriter, r *http.Request) {
+func (ShowResource) RouteUpdate(w http.ResponseWriter, r *http.Request) {
 	id, err := requests.ParseID(r)
 	if err != nil {
-		if e := responses.SendError(w, (*err).StatusCode(), *err); e != nil {
-			log.Fatal(e)
-		}
+		responses.SendError(w, *err)
 		return
 	}
 	var show Show
 	if err := datastore.FetchEntity(&show, id); err != nil {
-		if e := responses.SendError(w, (*err).StatusCode(), *err); e != nil {
-			log.Fatal(e)
-		}
+		responses.SendError(w, *err)
 		return
 	}
 	if err := requests.ReceiveEntity(r, &show); err != nil {
-		if e := responses.SendError(w, (*err).StatusCode(), *err); e != nil {
-			log.Fatal(e)
-		}
+		responses.SendError(w, *err)
 		return
 	}
 	if show.ID != id {
-		if err := responses.SendError(w, herr.UnmatchingIDsError.StatusCode(), herr.UnmatchingIDsError); err != nil {
-			log.Fatal(err)
-		}
+		responses.SendError(w, herr.UnmatchingIDsError)
 		return
 	}
 	if err := datastore.UpdateEntity(&show); err != nil {
-		if e := responses.SendError(w, (*err).StatusCode(), *err); e != nil {
-			log.Fatal(e)
-		}
+		responses.SendError(w, *err)
 		return
 	}
-	if err := responses.SendNoContent(w); err != nil {
-		log.Fatal(err)
-	}
+	responses.SendNoContent(w)
 }
 
 // ShowsDestroy is the HTTP endpoint used to delete a Show instance by its ID
-func (res ShowResource) RouteDestroy(w http.ResponseWriter, r *http.Request) {
+func (ShowResource) RouteDestroy(w http.ResponseWriter, r *http.Request) {
 	id, err := requests.ParseID(r)
 	if err != nil {
-		if e := responses.SendError(w, (*err).StatusCode(), *err); e != nil {
-			log.Fatal(e)
-		}
+		responses.SendError(w, *err)
 		return
 	}
 	show := Show{
 		ID: id,
 	}
 	if err := datastore.DeleteEntity(&show); err != nil {
-		if e := responses.SendError(w, (*err).StatusCode(), *err); e != nil {
-			log.Fatal(e)
-		}
+		responses.SendError(w, *err)
 		return
 	}
-	if err := responses.SendNoContent(w); err != nil {
-		log.Fatal(err)
-	}
+	responses.SendNoContent(w)
 }

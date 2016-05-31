@@ -32,7 +32,6 @@ func (c contentType) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for _, t := range c.accepted {
 		if t == r.Header.Get("Content-Type") {
 			c.h.ServeHTTP(w, r)
-			return
 		}
 	}
 	w.WriteHeader(http.StatusUnsupportedMediaType)

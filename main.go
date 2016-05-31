@@ -6,7 +6,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/gorilla/handlers"
 	"github.com/torrent-viewer/backend/datastore"
 	"github.com/torrent-viewer/backend/resources/show"
 	"github.com/torrent-viewer/backend/router"
@@ -34,7 +33,7 @@ func main() {
 	datastore.Conn.AutoMigrate(&show.Show{})
 	r := router.NewRouter()
 	r.Use(router.LoggingMiddleware)
-	r.Use(handlers.CORS())
+	// r.Use(handlers.CORS())
 	acceptedTypes := []string{
 		"application/vnd.api+json",
 	}

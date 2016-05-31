@@ -13,8 +13,8 @@ type errorResponse struct {
 }
 
 // SendError writes a single Error to w
-func SendError(w http.ResponseWriter, errcode int, e herr.Error) error {
-	w.WriteHeader(errcode)
+func SendError(w http.ResponseWriter, e herr.Error) error {
+	w.WriteHeader(e.StatusCode())
 	response := errorResponse{
 		Errors: herr.Errors{
 			e,
