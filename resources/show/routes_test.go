@@ -26,12 +26,11 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	resource := ShowResource{}
 	flag.Parse()
 	datastore.Init("sqlite3", "", "", "", "", "/tmp/torrent-viewer-test.db")
 	datastore.Conn.AutoMigrate(&Show{})
 	r := router.NewRouter()
-	r.AddResource("shows", resource)
+	r.AddResource("shows", ShowResource{})
 	server = httptest.NewServer(r)
 	baseURL = fmt.Sprintf("%s/shows", server.URL)
 	ret := m.Run()
