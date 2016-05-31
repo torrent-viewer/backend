@@ -1,1 +1,1 @@
-# backend
+# backend [![Build Status](https://travis-ci.org/torrent-viewer/backend.svg?branch=master)](https://travis-ci.org/torrent-viewer/backend) [![Coverage Status](https://coveralls.io/repos/github/torrent-viewer/backend/badge.svg?branch=master)](https://coveralls.io/github/torrent-viewer/backend?branch=master)
