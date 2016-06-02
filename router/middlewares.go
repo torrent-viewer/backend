@@ -1,7 +1,6 @@
 package router
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -77,7 +76,6 @@ func (fw firewall) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if authenticated == false {
-			fmt.Println("Heuheuehue")
 			w.WriteHeader(401)
 			return
 		}
@@ -91,7 +89,6 @@ func (fw firewall) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if authenticated == false {
-			fmt.Println("Heuheuehue")
 			w.WriteHeader(401)
 			return
 		}
