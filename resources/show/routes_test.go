@@ -39,14 +39,22 @@ func TestMain(m *testing.M) {
 }
 
 func TestShowsIndex(t *testing.T) {
-	request, err := http.NewRequest("GET", baseURL, nil)
-	response, err := http.DefaultClient.Do(request)
-	if err != nil {
-		t.Error(err)
+	response := testEndpoint(t, "GET", baseURL, nil)
+	if response.StatusCode != http.StatusOK {
+		t.Errorf("Expected HTTP %d, got HTTP %d", http.StatusOK, response.StatusCode)
 	}
-	if response.StatusCode != 200 {
-		t.Errorf("Expected HTTP 200, got HTTP %d", response.StatusCode)
+	response = testEndpoint(t, "GET", fmt.Sprintf("%s?page[number]=0", baseURL), nil)
+	if response.StatusCode != http.StatusBadRequest {
+		t.Errorf("Expected HTTP %d, got HTTP %d", http.StatusBadRequest, response.StatusCode)
+	}	
+	response = testEndpoint(t, "GET", fmt.Sprintf("%s?page[number]=-50", baseURL), nil)
+	if response.StatusCode != http.StatusBadRequest {
+		t.Errorf("Expected HTTP %d, got HTTP %d", http.StatusBadRequest, response.StatusCode)
 	}
+	response = testEndpoint(t, "GET", fmt.Sprintf("%s?page[number]=%s", baseURL, integerOverflow), nil)
+	if response.StatusCode != http.StatusBadRequest {
+		t.Errorf("Expected HTTP %d, got HTTP %d", http.StatusBadRequest, response.StatusCode)
+	}	
 }
 
 func testEndpoint(t *testing.T, method string, url string, input *string) *http.Response {
