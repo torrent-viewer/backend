@@ -6,8 +6,13 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/shwoodard/jsonapi"
+	"github.com/torrent-viewer/backend/datastore"
 	"github.com/torrent-viewer/backend/router"
 	"github.com/torrent-viewer/backend/herr"
+)
+
+var (
+	defaultPageSize int = 50
 )
 
 func ParseID(r *http.Request) (int, *herr.Error) {
@@ -25,6 +30,52 @@ func ParseID(r *http.Request) (int, *herr.Error) {
 		}
 	}
 	return id, nil
+}
+
+type Pagination struct {
+	Offset int
+	Limit int
+}
+
+func Paginate(model interface{}, r *http.Request) (Pagination, *herr.Error) {
+	var total int
+	if err := datastore.CountEntities(model, &total, nil); err != nil {
+		return Pagination{}, err
+	}
+	queries := r.URL.Query()
+	size := defaultPageSize
+	offset := 0
+	if sizeq, ok := queries["page[size]"]; ok {
+		size, err := strconv.Atoi(sizeq[0])
+		if err != nil || size <= 0 {
+			return Pagination{}, &herr.Error{
+				ID:     "invalid-parameter",
+				Status: "400",
+				Title:  "Invalid query parameter",
+				Source: herr.ErrorSource{
+					Parameter: "page[size]",
+				},
+			}
+		}		
+	}
+	if pageq, ok := queries["page[number]"]; ok {
+		page, err := strconv.Atoi(pageq[0])
+		offset = (page - 1) * size;
+		if err != nil || page < 1 || offset > total {
+			return Pagination{}, &herr.Error{
+				ID:     "invalid-parameter",
+				Status: "400",
+				Title:  "Invalid query parameter",
+				Source: herr.ErrorSource{
+					Parameter: "page[number]",
+				},
+			}
+		}
+	}
+	return Pagination{
+		Offset: offset,
+		Limit:  size,
+	}, nil
 }
 
 func ReceiveEntity(r *http.Request, entity interface{}) *herr.Error {

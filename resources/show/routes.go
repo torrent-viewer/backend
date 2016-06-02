@@ -3,7 +3,6 @@ package show
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/torrent-viewer/backend/datastore"
 	"github.com/torrent-viewer/backend/responses"
@@ -14,30 +13,14 @@ import (
 // ShowsList is the HTTP endpoint used to create list Shows instances
 func (ShowResource) RouteList(w http.ResponseWriter, r *http.Request) {
 	var entries Shows
-	var total int
-	var offset int
-	if err := datastore.CountEntities(&Show{}, &total, nil); err != nil {
+	var page requests.Pagination
+	if pagination, err := requests.Paginate(&Show{}, r); err != nil {
 		responses.SendError(w, *err)
-		return
+		return	
+	} else {
+		page = pagination
 	}
-	queries := r.URL.Query()
-	page := 1
-	if pageq, ok := queries["page[number]"]; ok {
-		pagenum, err := strconv.Atoi(pageq[0])
-		offset = (page - 1) * 50;
-		if err != nil || pagenum < 1 || offset > total {
-			responses.SendError(w, herr.Error{
-				ID:     "invalid-parameter",
-				Status: "400",
-				Title:  "Invalid query parameter",
-				Source: herr.ErrorSource{
-					Parameter: "page[number]",
-				},
-			})
-			return
-		}
-	}
-	if err := datastore.FetchPagedEntities(&entries, 50, offset); err != nil {
+	if err := datastore.FetchPagedEntities(&entries, page.Limit, page.Offset); err != nil {
 		responses.SendError(w, *err)
 		return
 	}
