@@ -49,6 +49,8 @@ func ContentTypeMiddleware(accepted []string) Middleware {
 	}
 }
 
+// Guard is a function used to authenticate user based on the current Request.
+// It returns bool if the user could be authenticated, false otherwise.
 type Guard func(r *http.Request) bool
 
 type firewall struct {
@@ -58,6 +60,13 @@ type firewall struct {
 	h      http.Handler
 }
 
+// FirewallConfig is used to configure a Firewall.
+// `Only` is a slice of Regexp patterns that represents the routes protected
+// by the firewall.
+// `Except` is a slive of Regexp patterns that represents the routes that are
+// not protected by the firewall.
+// If both `Only` and `Except` are given, only `Only` is used.
+// `Guard` is the function used to authenticate the user
 type FirewallConfig struct {
 	Only   []string
 	Except []string
@@ -104,6 +113,7 @@ func firewallCompileSlice(patterns []string) []*regexp.Regexp {
 	return compiled
 }
 
+// FirewallMiddleware create a Firewall that can be used by the Router
 func FirewallMiddleware(config FirewallConfig) Middleware {
 	onlyCompiled := firewallCompileSlice(config.Only)
 	exceptCompiled := firewallCompileSlice(config.Except)
