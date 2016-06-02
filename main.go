@@ -6,13 +6,33 @@ import (
 	"os"
 	"time"
 
-	"github.com/gorilla/handlers"
+	// "github.com/gorilla/handlers"
 	"github.com/torrent-viewer/backend/datastore"
 	"github.com/torrent-viewer/backend/resources/show"
 	"github.com/torrent-viewer/backend/router"
 )
 
 func BasicAuth(r *http.Request) bool {
+	if usernames, ok := r.Header["Username"]; ok {
+		if len(usernames) != 1 {
+			return false
+		}
+		if usernames[0] != "admin" {
+			return false
+		}
+	} else {
+		return false
+	}
+	if passwords, ok := r.Header["Password"]; ok {
+		if len(passwords) != 1 {
+			return false
+		}
+		if passwords[0] != "password" {
+			return false
+		}
+	} else {
+		return false
+	}
 	return true
 }
 
@@ -38,7 +58,7 @@ func main() {
 	datastore.Conn.AutoMigrate(&show.Show{})
 	r := router.NewRouter()
 	r.Use(router.LoggingMiddleware)
-	r.Use(handlers.CORS())
+	//r.Use(handlers.CORS())
 	acceptedTypes := []string{
 		"application/vnd.api+json",
 		"application/vnd.api+json; charset=UTF-8",
